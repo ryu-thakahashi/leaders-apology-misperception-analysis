@@ -1,27 +1,27 @@
 {
-    "id": "12ABDA25",
-    "path": "~/GitHub/leaders-apology-misperception-analysis/src/study_1b.R",
-    "project_path": "src/study_1b.R",
+    "id": "9BBB1479",
+    "path": "~/GitHub/leaders-apology-misperception-analysis/src/study_2.R",
+    "project_path": "src/study_2.R",
     "type": "r_source",
     "hash": "0",
     "contents": "",
     "dirty": false,
-    "created": 1742510291814.0,
+    "created": 1742510415334.0,
     "source_on_save": false,
-    "relative_order": 2,
+    "relative_order": 3,
     "properties": {
         "tempName": "Untitled1",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "64,0",
-        "scrollLine": "0"
+        "cursorPosition": "94,12",
+        "scrollLine": "72"
     },
     "folds": "",
-    "lastKnownWriteTime": 1742510387,
+    "lastKnownWriteTime": 1742511623,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1742510387338,
+    "last_content_update": 1742511623607,
     "read_only": false,
     "read_only_alternatives": []
 }
