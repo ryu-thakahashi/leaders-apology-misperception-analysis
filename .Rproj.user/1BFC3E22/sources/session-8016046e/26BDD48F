@@ -3,7 +3,7 @@
     "path": "~/GitHub/leaders-apology-misperception-analysis/src/study_1a.R",
     "project_path": "src/study_1a.R",
     "type": "r_source",
-    "hash": "3928126895",
+    "hash": "0",
     "contents": "",
     "dirty": false,
     "created": 1742507625231.0,
@@ -13,15 +13,15 @@
         "tempName": "Untitled1",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "5,0",
-        "scrollLine": "0"
+        "cursorPosition": "53,53",
+        "scrollLine": "37"
     },
     "folds": "",
-    "lastKnownWriteTime": 1742508030,
+    "lastKnownWriteTime": 1742510216,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1742508030773,
+    "last_content_update": 1742510216801,
     "read_only": false,
     "read_only_alternatives": []
 }
