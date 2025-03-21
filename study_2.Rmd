@@ -1,18 +1,101 @@
+---
+title: "Leaders' Misperceptions of the Eectiveness of Their Apologies to Subordinates"
+author: "Ryu Takahashi"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    toc_depth: 4
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    highlight: tango
+knitr:
+  opts_chunk:
+    fig_width: 16  # 幅（インチ単位）
+---
+
+## Preparation
+
+```{r setup, include=FALSE}
 rm(list = ls())
 Sys.setenv(LANG = "en")
+options(width = 120)
+sessionInfo()
+```
 
+### Load Libraries
+
+```{r}
 pacman::p_load(
   dplyr,
   ggplot2,
   tidyr,
   psych,
-  stringr
+  gridExtra
 )
-sessionInfo()
+```
 
-df <- read.csv("data/raw/study_2.csv")
-glimpse(df)
+### Load Data
 
+```{r}
+raw_df <- read.csv("data/raw/study_2.csv")
+glimpse(raw_df)
+```
+
+### Data Exclusion
+
+```{r}
+# glimpse(raw_df)
+# delete duplicated IP addresses
+IP_deleted_df <- raw_df |> distinct(IPAddress, .keep_all = TRUE)
+nrow(raw_df) - nrow(IP_deleted_df) # (118 in Excel)
+
+# not consent
+consent_df <- IP_deleted_df |> dplyr::filter(consensus == 1)
+nrow(IP_deleted_df) - nrow(consent_df) # (105 in Excel)
+
+# consent but not complete
+complete_df <- consent_df |> dplyr::filter(Progress > 95)
+nrow(consent_df) - nrow(complete_df) # (90 in Excel)
+
+# exclude out of age
+age_df <- complete_df |> dplyr::filter(age >= 30 & age <= 51)
+nrow(complete_df) - nrow(age_df) # (83 in Excel)
+
+# exclude not employed (66 in Excel)
+employed_df <- age_df |> dplyr::filter(working == 1)
+nrow(age_df) - nrow(employed_df) # (66 in Excel)
+
+# exclude not having supervisors
+superior_df <- employed_df |> dplyr::filter(exist_supervisors == 1)
+nrow(employed_df) - nrow(superior_df) # (256 in Excel)
+
+# exclude not having subordinates
+subordinate_df <- superior_df |> dplyr::filter(exist_subordinates == 1)
+nrow(superior_df) - nrow(subordinate_df) # (136 in Excel)
+
+# exclude not passed AC1 (attention check) and AC2 in subordinate
+sub_AC1_df <- subordinate_df |> dplyr::filter(sub_AC1 == 2 | is.na(sub_AC1))
+nrow(subordinate_df) - nrow(sub_AC1_df) # (136 in Excel)
+sub_AC2_df <- sub_AC1_df |> dplyr::filter(sub_AC2 == 5 | is.na(sub_AC2))
+nrow(sub_AC1_df) - nrow(sub_AC2_df) # (24 in Excel)
+
+# exclude not passed AC1 and AC2 in supervisor
+sup_AC1_df <- subordinate_df |> dplyr::filter(sup_AC1 == 2 | is.na(sup_AC1))
+nrow(subordinate_df) - nrow(sup_AC1_df) # (89 in Excel)
+sup_AC2_df <- sup_AC1_df |> dplyr::filter(sup_AC2 == 5 | is.na(sup_AC2))
+nrow(sup_AC1_df) - nrow(sup_AC2_df) # (42 in Excel)
+
+# exclude what sex is not matched
+df <- sup_AC2_df |> dplyr::filter(sex != 3)
+nrow(df)
+```
+
+### Aggregate Variables
+
+#### Prestige
+
+```{r}
 prestige_df <-
   df |>
   mutate(
@@ -32,12 +115,19 @@ prestige_df <-
     prestige9 = 8 - prestige9
   ) |>
   dplyr::select(starts_with("prestige"))
-glimpse(prestige_df)
+# glimpse(prestige_df)
+```
+
+```{r}
 cormat <- corr.test(prestige_df)
 cormat
 psych::alpha(prestige_df)
 df$prestige <- rowMeans(prestige_df)
+```
 
+#### TRIM
+
+```{r}
 # TRIM
 raw_trim_df <-
   df |>
@@ -62,7 +152,7 @@ raw_trim_df <-
     trim18 = ifelse(perspective == "leader", sup_ques_2_18, sub_ques_2_18)
   ) |>
   dplyr::select(starts_with("trim"))
-glimpse(raw_trim_df)
+# glimpse(raw_trim_df)
 
 re_trim_id <- c(1, 2, 4, 5, 7, 9, 10, 11, 13, 15, 17, 18)
 trim_id <- c(3, 6, 8, 12, 14, 16)
@@ -72,21 +162,41 @@ re_trim_df <-
   raw_trim_df |>
   dplyr::select(all_of(re_trim_cols))
 re_trim_df <- 8 - re_trim_df
-glimpse(re_trim_df)
+# glimpse(re_trim_df)
 trim_df <- raw_trim_df |>
   dplyr::select(all_of(trim_cols)) |>
   cbind(re_trim_df)
-glimpse(trim_df)
+# glimpse(trim_df)
+```
+
+```{r}
 psych::alpha(trim_df)
 df$trim <- rowMeans(trim_df)
+```
 
-glimpse(df)
-table(df$perspective)
-plt_df <- df |> dplyr::filter(perspective != "")
-nrow(plt_df)
+### Write processed data to CSV
 
-# ANOVA (prestige)
-plt_df$scneario
+
+```{r}
+selected_df <-
+  df |>
+  dplyr::select(
+    apology,
+    perspective,
+    sex,
+    scneario,
+    trim,
+    prestige
+  )
+write.csv(selected_df, "data/processed/study_2.csv")
+```
+
+
+## Main Analysis
+
+### Plot function
+
+```{r}
 plot_anova <- function(data, y_colname) {
   # y_colname <- "prestige"
   # scneario_num <- 1
@@ -136,7 +246,7 @@ plot_anova <- function(data, y_colname) {
       position = position_dodge(0.8)
     ) +
     scale_alpha_manual(
-      name = "Apology and Sex",
+      name = "Perspective",
       labels = color_labels,
       values = c(
         "costly.1" = 0.9,
@@ -146,6 +256,7 @@ plot_anova <- function(data, y_colname) {
       )
     ) +
     scale_fill_manual(
+      name = "Perspective",
       labels = color_labels,
       values = c(
         "costly.1" = "#F8766D",
@@ -167,8 +278,20 @@ plot_anova <- function(data, y_colname) {
 
   return(plt)
 }
-plot_anova(df, "prestige")
+```
 
+
+### ANOVA (prestige)
+
+#### Plot
+
+```{r}
+plot_anova(df, "prestige")
+```
+
+#### Analysis
+
+```{r}
 tapply(df$prestige, list(df$apology, df$sex), mean)
 tapply(df$prestige, list(df$apology, df$sex), sd)
 aov_res_1 <-
@@ -177,7 +300,19 @@ aov_res_1 <-
     data = df
   )
 summary(aov_res_1)
+```
 
+### ANOVA (TRIM)
+
+#### Plot
+
+```{r}
+plot_anova(df, "trim")
+```
+
+#### Analysis
+
+```{r}
 tapply(df$trim, list(df$apology, df$sex), mean)
 tapply(df$trim, list(df$apology, df$sex), sd)
 aov_res_2 <-
@@ -186,3 +321,4 @@ aov_res_2 <-
     data = df
   )
 summary(aov_res_2)
+```

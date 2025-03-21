@@ -1,19 +1,20 @@
-rm(list=ls())
-Sys.setenv(LANG="en")
+rm(list = ls())
+Sys.setenv(LANG = "en")
 
 pacman::p_load(
   dplyr,
   ggplot2,
   tidyr,
-  psych
+  psych,
+  stringr
 )
 sessionInfo()
 
-df = read.csv("data/raw/study_2.csv")
+df <- read.csv("data/raw/study_2.csv")
 glimpse(df)
 
-prestige_df = 
-  df |> 
+prestige_df <-
+  df |>
   mutate(
     prestige1 = ifelse(perspective == "leader", sup_ques_1_1, sub_ques_1_1),
     prestige2 = ifelse(perspective == "leader", sup_ques_1_2, sub_ques_1_2),
@@ -24,22 +25,22 @@ prestige_df =
     prestige7 = ifelse(perspective == "leader", sup_ques_1_7, sub_ques_1_7),
     prestige8 = ifelse(perspective == "leader", sup_ques_1_8, sub_ques_1_8),
     prestige9 = ifelse(perspective == "leader", sup_ques_1_9, sub_ques_1_9),
-  ) |> 
+  ) |>
   mutate(
     prestige2 = 8 - prestige2,
     prestige4 = 8 - prestige4,
     prestige9 = 8 - prestige9
-  ) |> 
+  ) |>
   dplyr::select(starts_with("prestige"))
 glimpse(prestige_df)
-cormat = corr.test(prestige_df)
+cormat <- corr.test(prestige_df)
 cormat
 psych::alpha(prestige_df)
-df$prestige = rowMeans(prestige_df)
+df$prestige <- rowMeans(prestige_df)
 
 # TRIM
-raw_trim_df = 
-  df |> 
+raw_trim_df <-
+  df |>
   mutate(
     trim1 = ifelse(perspective == "leader", sup_ques_2_1, sub_ques_2_1),
     trim2 = ifelse(perspective == "leader", sup_ques_2_2, sub_ques_2_2),
@@ -59,41 +60,129 @@ raw_trim_df =
     trim16 = ifelse(perspective == "leader", sup_ques_2_16, sub_ques_2_16),
     trim17 = ifelse(perspective == "leader", sup_ques_2_17, sub_ques_2_17),
     trim18 = ifelse(perspective == "leader", sup_ques_2_18, sub_ques_2_18)
-  ) |> 
+  ) |>
   dplyr::select(starts_with("trim"))
 glimpse(raw_trim_df)
 
-re_trim_id = c(1, 2, 4, 5, 7, 9, 10, 11, 13, 15, 17, 18)
-trim_id = c(3, 6, 8, 12, 14, 16)
-re_trim_cols = paste0("trim", re_trim_id)
-trim_cols = paste0("trim", trim_id)
-re_trim_df = 
-  raw_trim_df |> 
+re_trim_id <- c(1, 2, 4, 5, 7, 9, 10, 11, 13, 15, 17, 18)
+trim_id <- c(3, 6, 8, 12, 14, 16)
+re_trim_cols <- paste0("trim", re_trim_id)
+trim_cols <- paste0("trim", trim_id)
+re_trim_df <-
+  raw_trim_df |>
   dplyr::select(all_of(re_trim_cols))
-re_trim_df = 8 - re_trim_df
+re_trim_df <- 8 - re_trim_df
 glimpse(re_trim_df)
-trim_df = raw_trim_df |> 
-  dplyr::select(all_of(trim_cols)) |> 
+trim_df <- raw_trim_df |>
+  dplyr::select(all_of(trim_cols)) |>
   cbind(re_trim_df)
 glimpse(trim_df)
 psych::alpha(trim_df)
-df$trim = rowMeans(trim_df)
+df$trim <- rowMeans(trim_df)
 
 glimpse(df)
+table(df$perspective)
+plt_df <- df |> dplyr::filter(perspective != "")
+nrow(plt_df)
 
-# ANOVA
+# ANOVA (prestige)
+plt_df$scneario
+plot_anova <- function(data, y_colname) {
+  # y_colname <- "prestige"
+  # scneario_num <- 1
+
+  create_title <- function(category_value) {
+    return(paste("Scenario", category_value))
+  }
+
+  plt_df <- data |>
+    dplyr::filter(perspective != "")
+
+  color_labels <- c(
+    "costly.1" = "Costly (male)",
+    "costly.2" = "Costly (female)",
+    "noncostly.1" = "Non-costly (male)",
+    "noncostly.2" = "Non-costly (female)"
+  )
+
+  color_interaction <- interaction(factor(plt_df$apology), factor(plt_df$sex))
+  plt <- ggplot(
+    plt_df,
+    mapping = aes(
+      x = perspective,
+      y = .data[[y_colname]],
+      fill = color_interaction
+    )
+  ) +
+    theme_bw() +
+    geom_violin(
+      aes(alpha = color_interaction),
+      color = NA,
+      position = position_dodge(0.8)
+    ) +
+    geom_boxplot(
+      color = "black",
+      alpha = 0,
+      width = 0.3,
+      position = position_dodge(0.8),
+      outlier.shape = NA,
+      fatten = 1
+    ) +
+    stat_summary(
+      fun = mean,
+      geom = "point",
+      shape = 18,
+      size = 3,
+      position = position_dodge(0.8)
+    ) +
+    scale_alpha_manual(
+      name = "Apology and Sex",
+      labels = color_labels,
+      values = c(
+        "costly.1" = 0.9,
+        "costly.2" = 0.3,
+        "noncostly.1" = 0.9,
+        "noncostly.2" = 0.3
+      )
+    ) +
+    scale_fill_manual(
+      labels = color_labels,
+      values = c(
+        "costly.1" = "#F8766D",
+        "costly.2" = "#F8766D",
+        "noncostly.1" = "#00BFC4",
+        "noncostly.2" = "#00BFC4"
+      )
+    ) +
+    facet_wrap(~scneario, ncol = 2, labeller = "label_both") +
+    labs(
+      x = "Perspective",
+      y = stringr::str_to_sentence(y_colname),
+      title = stringr::str_to_sentence(paste(y_colname)),
+    ) +
+    scale_y_continuous(
+      limits = c(1, 7),
+      breaks = seq(1, 7, 1)
+    )
+
+  return(plt)
+}
+plot_anova(df, "prestige")
+
 tapply(df$prestige, list(df$apology, df$sex), mean)
 tapply(df$prestige, list(df$apology, df$sex), sd)
-aov_res_1 = 
+aov_res_1 <-
   aov(
-    prestige~factor(perspective)*factor(apology)*factor(scneario)*factor(sex),
-    data=df)
+    prestige ~ factor(perspective) * factor(apology) * factor(scneario) * factor(sex),
+    data = df
+  )
 summary(aov_res_1)
 
 tapply(df$trim, list(df$apology, df$sex), mean)
 tapply(df$trim, list(df$apology, df$sex), sd)
-aov_res_2 = 
+aov_res_2 <-
   aov(
-    trim~factor(perspective)*factor(apology)*factor(scneario)*factor(sex),
-    data=df)
+    trim ~ factor(perspective) * factor(apology) * factor(scneario) * factor(sex),
+    data = df
+  )
 summary(aov_res_2)
